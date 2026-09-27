@@ -39,6 +39,12 @@ def ensure_seed_data():
         arrivalKg=Decimal("980.00"),
         receivedAt=now - timezone.timedelta(hours=10),
     )
+    lot_d = ResinLot.objects.create(
+        lotCode="脂-松脂坳-2409D",
+        originPlace="松脂坳东沟",
+        arrivalKg=Decimal("1250.00"),
+        receivedAt=now - timezone.timedelta(hours=3),
+    )
 
     h1 = FireHearth.objects.create(
         lane=1,
@@ -69,6 +75,12 @@ def ensure_seed_data():
         tag="坳火-夜班",
         resinGrade="浮油级",
         phase=FireHearth.PHASE_CHARGING,
+    )
+    h6 = FireHearth.objects.create(
+        lane=3,
+        tag="坑火-东一",
+        resinGrade="一级脂",
+        phase=FireHearth.PHASE_HOLDING,
     )
 
     run1 = CookRun.objects.create(
@@ -131,4 +143,18 @@ def ensure_seed_data():
         openedAt=now - timezone.timedelta(minutes=40),
         closedAt=None,
         targetSoftPointC=Decimal("87.00"),
+    )
+
+    run6 = CookRun.objects.create(
+        hearth=h6,
+        resinLot=lot_d,
+        openedAt=now - timezone.timedelta(hours=2),
+        closedAt=None,
+        targetSoftPointC=Decimal("89.00"),
+    )
+    SoftPointProbe.objects.create(
+        run=run6,
+        sampledAt=now - timezone.timedelta(minutes=50),
+        softPointC=Decimal("101.50"),
+        samplerName="值守阿坤",
     )

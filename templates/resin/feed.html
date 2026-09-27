@@ -4,10 +4,27 @@
 <section class="feed-head">
   <div>
     <h1>来脂批</h1>
-    <p class="board-sub">到货时间线 · 非宽表台账</p>
+    <p class="board-sub">到货时间线 · 产地筛选 · 非宽表台账</p>
   </div>
   <a class="back-link" href="{% url 'home' %}">← 回值守看板</a>
 </section>
+
+<div class="feed-tools">
+  <form method="get" action="{% url 'resin_lot_feed' %}" class="origin-filter">
+    <label for="origin-pick">产地筛选</label>
+    <select id="origin-pick" name="origin" class="field">
+      <option value="">全部产地</option>
+      {% for o in origins %}
+      <option value="{{ o }}" {% if o == active_origin %}selected{% endif %}>{{ o }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-ghost">筛选</button>
+    {% if active_origin %}
+    <a class="chip-clear" href="{% url 'resin_lot_feed' %}">清除筛选</a>
+    {% endif %}
+  </form>
+  <p class="recon-line">对账口径 · 无筛全量复算：来脂批总数 <span class="mono">{{ recon.lot_total }}</span></p>
+</div>
 
 <div class="feed-layout">
   <form method="post" class="lot-intake stack-form">
@@ -28,7 +45,9 @@
       </div>
     </li>
     {% empty %}
-    <li class="lot-card empty">暂无来脂批</li>
+    <li class="lot-card empty">
+      {% if active_origin %}该产地暂无来脂批，可清除筛选查看全部{% else %}暂无来脂批{% endif %}
+    </li>
     {% endfor %}
   </ol>
 </div>

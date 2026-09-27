@@ -5,12 +5,16 @@ from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import urlencode
 from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import OpenCookRunForm, PhaseChangeForm, ResinLotForm, SoftPointProbeForm
 from .models import CookRun, FireHearth, ResinLot
-from .services.floor_rules import change_hearth_phase
+from .services.floor_rules import DRAWING_SOFT_POINT_MAX, change_hearth_phase
+
+PHASE_KEYS = {key for key, _label in FireHearth.PHASE_CHOICES}
 
 
 def _wants_htmx(request):
@@ -18,6 +22,7 @@ def _wants_htmx(request):
 
 
 def _hearths_for_board():
+    """看板唯一数据源：无筛全量灶台 + 预取进行中值守。"""
     return FireHearth.objects.prefetch_related(
         Prefetch(
             "runs",
@@ -29,19 +34,38 @@ def _hearths_for_board():
     ).order_by("lane", "tag")
 
 
-def _board_context():
-    hearths = list(_hearths_for_board())
+def _board_context(active_phase=""):
+    """
+    整页与 HTMX 局部网格共用的上下文。
+
+    瓦片与对账同源自一份「无筛全量」列表：灶台总数 / 各相位图例数 /
+    未收灶值守数一律按无筛全量复算；相位筛只在内存里过滤展示子集，
+    不另起第二趟查询，杜绝两处各算出现差 1。
+    """
+    if active_phase not in PHASE_KEYS:
+        active_phase = ""
+    hearths_all = list(_hearths_for_board())
+    if active_phase:
+        tiles = [h for h in hearths_all if h.phase == active_phase]
+    else:
+        tiles = hearths_all
     lanes = {}
-    for h in hearths:
+    for h in tiles:
         lanes.setdefault(h.lane, []).append(h)
     phase_legend = [
-        (key, label, sum(1 for h in hearths if h.phase == key))
+        (key, label, sum(1 for h in hearths_all if h.phase == key))
         for key, label in FireHearth.PHASE_CHOICES
     ]
+    recon = {
+        "hearth_total": len(hearths_all),
+        "open_run_total": sum(1 for h in hearths_all if h.open_runs_cache),
+    }
     return {
-        "hearths": hearths,
         "lanes": sorted(lanes.items()),
         "phase_legend": phase_legend,
+        "phase_choices": FireHearth.PHASE_CHOICES,
+        "active_phase": active_phase,
+        "recon": recon,
     }
 
 
@@ -57,12 +81,13 @@ def _drawer_context(hearth):
         "phase_form": PhaseChangeForm(hearth=hearth),
         "probe_form": SoftPointProbeForm() if open_run else None,
         "open_run_form": OpenCookRunForm(hearth=hearth) if open_run is None else None,
+        "drawing_soft_point_max": DRAWING_SOFT_POINT_MAX,
     }
 
 
 @login_required
 def home(request):
-    ctx = _board_context()
+    ctx = _board_context(request.GET.get("phase", ""))
     drawer_pk = request.GET.get("hearth")
     if drawer_pk:
         try:
@@ -78,7 +103,8 @@ def home(request):
 
 @login_required
 def floor_grid_partial(request):
-    html = render_to_string("floor/_grid.html", _board_context(), request=request)
+    ctx = _board_context(request.GET.get("phase", ""))
+    html = render_to_string("floor/_grid.html", ctx, request=request)
     return HttpResponse(html)
 
 
@@ -199,7 +225,11 @@ def resin_lot_feed(request):
         if form.is_valid():
             form.save()
             messages.success(request, "来脂批已登记")
-            return redirect("resin_lot_feed")
+            url = reverse("resin_lot_feed")
+            origin = request.GET.get("origin", "")
+            if origin:
+                url = f"{url}?{urlencode({'origin': origin})}"
+            return redirect(url)
     else:
         form = ResinLotForm(
             initial={
@@ -207,5 +237,24 @@ def resin_lot_feed(request):
             }
         )
 
-    lots = ResinLot.objects.all()[:40]
-    return render(request, "resin/feed.html", {"lots": lots, "form": form})
+    # 无筛全量：卡片与对账共用同一列表，不切片、不另起聚合查询
+    lots_all = list(ResinLot.objects.all())
+    origins = sorted({lot.originPlace for lot in lots_all})
+    active_origin = request.GET.get("origin", "")
+    if active_origin not in origins:
+        active_origin = ""
+    if active_origin:
+        lots = [lot for lot in lots_all if lot.originPlace == active_origin]
+    else:
+        lots = lots_all
+    return render(
+        request,
+        "resin/feed.html",
+        {
+            "lots": lots,
+            "form": form,
+            "origins": origins,
+            "active_origin": active_origin,
+            "recon": {"lot_total": len(lots_all)},
+        },
+    )

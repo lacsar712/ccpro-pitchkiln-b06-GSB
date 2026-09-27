@@ -1,8 +1,36 @@
 <div id="floor-grid"
      class="floor-grid"
-     hx-get="{% url 'floor_grid' %}"
+     hx-get="{% url 'floor_grid' %}{% if active_phase %}?phase={{ active_phase }}{% endif %}"
      hx-trigger="floor-refresh from:body"
      hx-swap="outerHTML">
+
+  <div class="floor-toolbar">
+    <div class="phase-filter" role="group" aria-label="相位筛选">
+      <a class="chip {% if not active_phase %}on{% endif %}"
+         href="{% url 'home' %}"
+         hx-get="{% url 'floor_grid' %}"
+         hx-target="#floor-grid"
+         hx-swap="outerHTML"
+         hx-push-url="{% url 'home' %}">全部</a>
+      {% for key, label in phase_choices %}
+      <a class="chip phase-{{ key }} {% if active_phase == key %}on{% endif %}"
+         href="{% url 'home' %}?phase={{ key }}"
+         hx-get="{% url 'floor_grid' %}?phase={{ key }}"
+         hx-target="#floor-grid"
+         hx-swap="outerHTML"
+         hx-push-url="{% url 'home' %}?phase={{ key }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="phase-legend" title="图例计数口径：无筛全量">
+      {% for key, label, count in phase_legend %}
+      <span class="leg phase-{{ key }}"><i></i>{{ label }} {{ count }}</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p class="recon-line">对账口径 · 无筛全量复算：灶台总数 <span class="mono">{{ recon.hearth_total }}</span> · 未收灶值守 <span class="mono">{{ recon.open_run_total }}</span> · 各相位计数见图例（同口径）</p>
+
   {% for lane, tiles in lanes %}
   <div class="lane-row">
     <div class="lane-label">过道 {{ lane }}</div>
@@ -30,6 +58,8 @@
     </div>
   </div>
   {% empty %}
-  <p class="board-empty">暂无灶台，请先种子数据</p>
+  <p class="board-empty">
+    {% if active_phase %}该相位暂无灶台，切换其他相位或「全部」{% else %}暂无灶台，请先种子数据{% endif %}
+  </p>
   {% endfor %}
 </div>

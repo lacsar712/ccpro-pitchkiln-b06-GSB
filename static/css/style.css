@@ -284,6 +284,63 @@ body {
   color: var(--steel);
 }
 
+/* —— board toolbar: phase filter chips + recon line —— */
+.floor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  flex-wrap: wrap;
+}
+
+.phase-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--cinder);
+  text-decoration: none;
+  border: 1px solid #3f342a;
+  border-left-width: 4px;
+  background: var(--soot-2);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--ember);
+  color: #fff;
+  text-decoration: none;
+}
+
+.chip.on {
+  background: var(--ember-dim);
+  border-color: var(--ember);
+  color: #fff;
+  font-weight: 700;
+}
+
+.chip.phase-cold { border-left-color: var(--cold); }
+.chip.phase-charging { border-left-color: var(--charging); }
+.chip.phase-ramping { border-left-color: var(--ramping); }
+.chip.phase-holding { border-left-color: var(--holding); }
+.chip.phase-drawing { border-left-color: var(--drawing); }
+
+.recon-line {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--steel);
+  border: 1px dashed #3f342a;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.4rem 0.65rem;
+}
+
+.recon-line .mono { color: var(--cinder); font-weight: 700; }
+
 .leg {
   display: inline-flex;
   align-items: center;
@@ -543,6 +600,37 @@ body {
 .btn-ghost:hover { border-color: var(--cinder); color: var(--ink); }
 
 /* —— resin feed —— */
+.feed-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.origin-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.origin-filter label {
+  font-size: 0.78rem;
+  color: var(--steel);
+}
+
+.origin-filter .field { width: auto; }
+
+.chip-clear {
+  color: var(--ember);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.chip-clear:hover { text-decoration: underline; }
+
 .feed-layout {
   display: grid;
   grid-template-columns: minmax(240px, 320px) 1fr;
