@@ -303,11 +303,55 @@ body {
 .leg.phase-holding i { background: var(--holding); }
 .leg.phase-drawing i { background: var(--drawing); }
 
+.floor-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-right: calc(var(--drawer-w) + 0.5rem);
+}
+
+.grid-toolbar,
+.feed-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.feed-toolbar { margin-bottom: 1rem; }
+
+.phase-filter,
+.origin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--steel);
+}
+
+.phase-filter .field,
+.origin-filter .field {
+  width: auto;
+  min-width: 7rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+}
+
+.recon {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--cinder);
+  border: 1px dashed #3f342a;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.25rem 0.55rem;
+  letter-spacing: 0.03em;
+}
+
 .floor-grid {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-right: calc(var(--drawer-w) + 0.5rem);
 }
 
 .lane-row {
@@ -610,7 +654,7 @@ body {
 
 @media (max-width: 900px) {
   .ember-gate { grid-template-columns: 1fr; }
-  .floor-grid { margin-right: 0; }
+  .floor-wrap { margin-right: 0; }
   .drawer {
     width: min(100vw, 380px);
   }

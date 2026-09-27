@@ -29,19 +29,39 @@ def _hearths_for_board():
     ).order_by("lane", "tag")
 
 
-def _board_context():
+def _board_context(request):
+    """看板唯一上下文来源：整页与 HTMX 局部网格共用，瓦片集合必然一致。
+
+    对账口径（灶台总数 / 各相位图例数 / 未收灶值守数）一律由无筛全量
+    列表推导；相位筛只决定可见瓦片，不参与对账数字。所有计数都从同一
+    个已求值的 ``hearths`` 列表算出，不另起查询，避免看板与列表各算差 1。
+    """
     hearths = list(_hearths_for_board())
-    lanes = {}
-    for h in hearths:
-        lanes.setdefault(h.lane, []).append(h)
+
+    # —— 对账：无筛全量复算 ——
     phase_legend = [
         (key, label, sum(1 for h in hearths if h.phase == key))
         for key, label in FireHearth.PHASE_CHOICES
     ]
+    hearth_total = len(hearths)
+    open_run_total = sum(1 for h in hearths if h.open_runs_cache)
+
+    # —— 相位筛：只过滤可见瓦片 ——
+    phase_filter = request.GET.get("phase", "")
+    valid_phases = {key for key, _label in FireHearth.PHASE_CHOICES}
+    if phase_filter not in valid_phases:
+        phase_filter = ""
+    visible = [h for h in hearths if not phase_filter or h.phase == phase_filter]
+
+    lanes = {}
+    for h in visible:
+        lanes.setdefault(h.lane, []).append(h)
     return {
-        "hearths": hearths,
         "lanes": sorted(lanes.items()),
         "phase_legend": phase_legend,
+        "phase_filter": phase_filter,
+        "hearth_total": hearth_total,
+        "open_run_total": open_run_total,
     }
 
 
@@ -62,7 +82,7 @@ def _drawer_context(hearth):
 
 @login_required
 def home(request):
-    ctx = _board_context()
+    ctx = _board_context(request)
     drawer_pk = request.GET.get("hearth")
     if drawer_pk:
         try:
@@ -78,7 +98,7 @@ def home(request):
 
 @login_required
 def floor_grid_partial(request):
-    html = render_to_string("floor/_grid.html", _board_context(), request=request)
+    html = render_to_string("floor/_grid.html", _board_context(request), request=request)
     return HttpResponse(html)
 
 
@@ -207,5 +227,25 @@ def resin_lot_feed(request):
             }
         )
 
-    lots = ResinLot.objects.all()[:40]
-    return render(request, "resin/feed.html", {"lots": lots, "form": form})
+    # 对账口径：来脂批总数一律按无筛全量复算；产地筛只过滤可见卡片。
+    # 总数与卡片都来自同一个已求值列表，不另起 count 查询，避免差 1。
+    all_lots = list(ResinLot.objects.all())
+    lot_total = len(all_lots)
+
+    origin_filter = request.GET.get("origin", "")
+    origin_choices = sorted({lot.originPlace for lot in all_lots})
+    if origin_filter not in origin_choices:
+        origin_filter = ""
+    lots = [lot for lot in all_lots if not origin_filter or lot.originPlace == origin_filter]
+
+    return render(
+        request,
+        "resin/feed.html",
+        {
+            "lots": lots,
+            "form": form,
+            "lot_total": lot_total,
+            "origin_choices": origin_choices,
+            "origin_filter": origin_filter,
+        },
+    )

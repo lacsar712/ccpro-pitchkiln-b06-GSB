@@ -4,10 +4,24 @@
 <section class="feed-head">
   <div>
     <h1>来脂批</h1>
-    <p class="board-sub">到货时间线 · 非宽表台账</p>
+    <p class="board-sub">到货时间线 · 非宽表台账 · 产地筛只改可见卡片，对账恒为无筛全量</p>
   </div>
   <a class="back-link" href="{% url 'home' %}">← 回值守看板</a>
 </section>
+
+<div class="feed-toolbar">
+  <form method="get" class="origin-filter">
+    <label for="origin-filter">产地筛</label>
+    <select id="origin-filter" name="origin" class="field" onchange="this.form.submit()">
+      <option value="" {% if not origin_filter %}selected{% endif %}>全部产地</option>
+      {% for place in origin_choices %}
+      <option value="{{ place }}" {% if origin_filter == place %}selected{% endif %}>{{ place }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit" class="btn-ghost">筛</button></noscript>
+  </form>
+  <p class="recon mono">对账·无筛全量 来脂批 {{ lot_total }} 批</p>
+</div>
 
 <div class="feed-layout">
   <form method="post" class="lot-intake stack-form">
